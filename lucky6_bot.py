@@ -1,12 +1,17 @@
+import os
 import requests
 import time
 from collections import Counter
 
 # ==============================
-# CONFIGURACIÓN TELEGRAM
+# CONFIGURACIÓN TELEGRAM DESDE VARIABLES DE ENTORNO
 # ==============================
-TELEGRAM_TOKEN = "8453016798:AAGZ18QXO8hylO9OKC5goKP-lx87DtDPXf8"
-TELEGRAM_CHAT_ID = "1639633194"
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+    print("❌ ERROR: Falta TELEGRAM_TOKEN o TELEGRAM_CHAT_ID en las variables de entorno.")
+    exit(1)
 
 # ==============================
 # CONFIGURACIÓN DEL BOT DE RULETA
@@ -26,7 +31,7 @@ ANALYSIS_WINDOW = 100
 BASE_BET = 1
 STRATEGY = "martingale"  # o "dalembert"
 MAX_MARTINGALE_STEPS = 6
-THRESHOLD_DOCENA_OPCIONAL = 8  # giros sin salir para marcar como opcional
+THRESHOLD_DOCENA_OPCIONAL = 8
 
 # ==============================
 # FUNCIONES DE UTILIDAD
@@ -35,9 +40,11 @@ def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
     try:
-        requests.post(url, data=data)
+        r = requests.post(url, data=data)
+        if r.status_code != 200:
+            print(f"❌ Error enviando mensaje a Telegram: {r.text}")
     except Exception as e:
-        print(f"Error enviando mensaje a Telegram: {e}")
+        print(f"❌ Excepción enviando mensaje a Telegram: {e}")
 
 def fetch_history():
     try:
@@ -45,7 +52,7 @@ def fetch_history():
         r.raise_for_status()
         return r.json()
     except Exception as e:
-        print("Error al obtener history:", e)
+        print("❌ Error al obtener history:", e)
         return None
 
 def number_to_dozen(n):
@@ -135,6 +142,7 @@ class DAlembertState:
 # MAIN LOOP
 # ==============================
 def main_loop():
+    send_telegram("✅ Bot Lucky 6 iniciado correctamente en Railway")
     state = MartingaleState(BASE_BET, MAX_MARTINGALE_STEPS) if STRATEGY == "martingale" else DAlembertState(BASE_BET)
     last_seen_top_game_id = None
 
